@@ -1,0 +1,70 @@
+{
+  "name": "nativescript-environments",
+  "version": "1.0.0",
+  "description": "Nativescript plugin for create environments using prefixes and copy only files with some prefix.",
+  "main": "index.js",
+  "nativescript": {
+    "hooks": [
+      {
+        "type": "after-prepare",
+        "script": "lib/after-prepare.js",
+        "inject": true
+      },
+      {
+        "type": "before-watch",
+        "script": "lib/before-watch.js",
+        "inject": true
+      },
+      {
+        "type": "before-watchPatterns",
+        "script": "lib/before-watchPatterns.js",
+        "inject": true
+      }
+    ]
+  },
+  "files": [
+    "lib/**",
+    "scripts/**",
+    "package.json"
+  ],
+  "scripts": {
+    "demo.ios": "npm run setupdemo && cd ../demo && tns emulate ios",
+    "demo.android": "npm run setupdemo && cd ../demo && tns run android --emulator",
+    "debug.ios": "npm run setupdemo && cd ../demo && tns debug ios --emulator",
+    "debug.android": "npm run setupdemo && cd ../demo && tns debug android --emulator",
+    "demo-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns emulate ios",
+    "demo-ng.android": "npm run setupdemo-ng && cd ../demo-ng && tns run android --emulator",
+    "debug-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns debug ios --emulator",
+    "debug-ng.android": "npm run setupdemo-ng && cd ../demo-ng && tns debug android --emulator",
+    "setupdemo": "node scripts/setupdemo.js",
+    "setupdemo-ng": "node scripts/setupdemo-ng.js",
+    "setup": "cd ../demo && npm install && tns plugin add ../src && cd ../src",
+    "setup-ng": "cd ../demo-ng && npm install && tns plugin add ../src && cd ../src",
+    "start": "npm run demo.android",
+    "postinstall": "node scripts/postinstall.js",
+    "preuninstall": "node scripts/preuninstall.js"
+  },
+  "keywords": [
+    "NativeScript",
+    "Bridge",
+    "Plugin",
+    "Environment",
+    "JavaScript",
+    "TypeScript"
+  ],
+  "author": {
+    "name": "Diego Fernando",
+    "email": "dfmv124@gmail.com"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "nativescript-hook": "^0.2.4"
+  },
+  "dependencies": {
+    "chokidar": "^2.0.4",
+    "fs-extra": "^6.0.1",
+    "require-file": "^1.0.2",
+    "semver": "^5.5.0",
+    "toml": "^2.3.3"
+  }
+}

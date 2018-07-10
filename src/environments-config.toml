@@ -1,0 +1,6 @@
+[[environments]]
+name = "staging"
+default = true
+
+[[environments]]
+name = "release"

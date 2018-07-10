@@ -1,0 +1,6 @@
+[[environments]]
+name = "staging"
+
+[[environments]]
+name = "production"
+default = true
