@@ -1,4 +1,7 @@
+
+
 # Nativescript Environments
+### :construction: plugin under development, not suitable for use and not published yet in NPM repository
 
 Plugin for the Nativescript Framework that allows to use certain files againts the current configured environment in the project, supports raw JS, Angular and Vue projects
 
@@ -8,7 +11,7 @@ You can create as many environments as you want and configure your files for bei
 
 ### Prerequisites
 
-You first need to create a TOML file named `environments-config.toml` at the root of your project, next fill it with some environments data, like this:
+You need a 4.1.x NativeScript project and need to create a TOML file named `environments-config.toml` at the root of your project, next fill it with some environments data, like this:
 
 ```TOML
 # this is the list of environments, 
@@ -88,18 +91,10 @@ This will create a `home.component.ts` in the same dir with the code of the curr
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+Install as any nativescript plugin from market
 
 ```
-Give the example
-```
-
-And repeat
-
-```
-until finished
+tns plugin add nativescript-environments
 ```
 
 End with an example of getting some data out of the system or using it for a little demo
