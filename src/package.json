@@ -6,13 +6,18 @@
   "nativescript": {
     "hooks": [
       {
-        "type": "after-prepare",
-        "script": "lib/after-prepare.js",
+        "type": "before-prepare",
+        "script": "lib/before-prepare.js",
         "inject": true
       },
       {
         "type": "before-watch",
         "script": "lib/before-watch.js",
+        "inject": true
+      },
+      {
+        "type": "after-watch",
+        "script": "lib/after-watch.js",
         "inject": true
       },
       {
@@ -29,15 +34,15 @@
   ],
   "scripts": {
     "demo.ios": "npm run setupdemo && cd ../demo && tns emulate ios",
-    "demo.android": "npm run setupdemo && cd ../demo && tns run android --emulator",
+    "demo.android": "npm run setupdemo && cd ../demo && tns run android",
     "debug.ios": "npm run setupdemo && cd ../demo && tns debug ios --emulator",
     "debug.android": "npm run setupdemo && cd ../demo && tns debug android --emulator",
     "demo-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns emulate ios",
-    "demo-ng.android": "npm run setupdemo-ng && cd ../demo-ng && tns run android --emulator",
+    "demo-ng.android": "cd ../demo-ng && tns run android --syncAllFiles",
     "debug-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns debug ios --emulator",
     "debug-ng.android": "npm run setupdemo-ng && cd ../demo-ng && tns debug android --emulator",
-    "setupdemo": "node scripts/setupdemo.js",
-    "setupdemo-ng": "node scripts/setupdemo-ng.js",
+    "setupdemo": "cd ../demo && npm uninstall nativescript-environments && npm install ../src --save-dev && tns install",
+    "setupdemo-ng": "cd ../demo-ng && npm uninstall nativescript-environments && npm install ../src --save-dev && tns install",
     "setup": "cd ../demo && npm install && tns plugin add ../src && cd ../src",
     "setup-ng": "cd ../demo-ng && npm install && tns plugin add ../src && cd ../src",
     "start": "npm run demo.android",
@@ -65,6 +70,7 @@
     "fs-extra": "^6.0.1",
     "require-file": "^1.0.2",
     "semver": "^5.5.0",
-    "toml": "^2.3.3"
+    "toml": "^2.3.3",
+    "tree-kill": "^1.2.0"
   }
 }

@@ -1,7 +1,7 @@
 const { environmentsWatcher } = require('./environments-interpreter')
 
 module.exports = function (logger, projectData, options, hookArgs) {
-    logger.info(hookArgs)
+    // logger.info(hookArgs)
 
     if (hookArgs.config) {
         const appFilesUpdaterOptions = hookArgs.config.appFilesUpdaterOptions;
@@ -12,4 +12,5 @@ module.exports = function (logger, projectData, options, hookArgs) {
     }
 
     return environmentsWatcher(logger, projectData, options, hookArgs)
+    //return Promise.resolve();
 }

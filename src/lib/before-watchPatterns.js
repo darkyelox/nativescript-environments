@@ -1,15 +1,19 @@
-const { getEnvironmentConfig } = require('./environments-interpreter')
+const { getAllEnvironmentConfigs } = require('./environments-interpreter')
 
 module.exports = function (logger, projectData, options, hookArgs) {
-    const environmentConfig = getEnvironmentConfig(projectData.projectDir, hookArgs)
 
-    logger.info(environmentConfig)
+    const environmentConfigs = getAllEnvironmentConfigs(projectData.projectDir);
 
     if (hookArgs.liveSyncData && !hookArgs.liveSyncData.bundle) {
 		return (args, originalMethod) => {
 			return originalMethod(...args).then(originalPatterns => {
-				originalPatterns.push(`!platforms/**/*.${environmentConfig.name}.*`);
-                originalPatterns.push(`environments-config.toml`);
+				// originalPatterns.push(`!${projectData.platformsDir}`);
+				
+				// environmentConfigs.forEach(environmentConfig => {
+				// 	originalPatterns.push(`${projectData.projectDir}/**/*.${environmentConfig.name}.*`);
+				// });
+
+                // originalPatterns.push(`${projectData.projectDir}/environments-config.toml`);
 				return originalPatterns;
 			});
 		};

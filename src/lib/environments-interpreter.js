@@ -5,11 +5,13 @@ const {
     statSync
 } = require('fs');
 const {
-    join
+    join,
+    basename,
+    dirname
 } = require('path');
 const {
     spawn
- } = require('child_process');
+} = require('child_process');
 const {
     ENVIRONMENTS_FILE
 } = require('./constants.js');
@@ -21,18 +23,12 @@ const requireFile = require('require-file')
 let watcher = null;
 
 const forExclude = (filePath) => {
-    const ignoreRegExp = new RegExp('(node_modules|tns_modules|hooks|gradle|build-tools)')
+    const ignoreRegExp = new RegExp('(node_modules|tns_modules|hooks|gradle|build-tools|platform)')
 
     return ignoreRegExp.test(filePath)
 }
 
 const buildFilePathWithoutEnvironment = (logger, environmentConfig, parentPath, file) => {
-    /* let fileNameParts = file.split('.');
-    let ext = fileNameParts[fileNameParts.length - 1];
-    let fileName = fileNameParts;
-
-    return join(parentPath, `${fileName}.${ext}`); */
-
     const fileName = file.replace(new RegExp(`\\.${environmentConfig.name}`), '')
     logger.info('new FileName', fileName)
     return join(parentPath, fileName)
@@ -53,7 +49,7 @@ const copyEnvironmentedFiles = (logger, environmentConfig, directory) => {
             copyEnvironmentedFile(logger, environmentConfig, parentPath, currentFileOrDir)
         }
     }
-    console.log(platformsDirFiles)
+
     platformsDirFiles.forEach((file) => matchAndCopyFiles(directory, file));
     return true;
 }
@@ -65,7 +61,6 @@ const copyEnvironmentedFile = (logger, environmentConfig, parentPath, file) => {
     logger.info('source path', sourceFilePath)
     logger.info('target path', targetFilePath)
 
-    // renameSync(sourceFilePath, targetFilePath)
     copyFileSync(sourceFilePath, targetFilePath)
 }
 
@@ -79,21 +74,27 @@ const findEnvironment = function (environmentsData, environment) {
 
 }
 
-const interpreteEnvironment = (logger, environmentConfigs, directory, watch) => {
+const interpreteEnvironment = (logger, environmentConfigs, projectData, watch) => {
 
     if (watch == true) {
-        watcher = spawn(process.execPath, [ join(__dirname, "./watcher.js"), JSON.stringify({ environments: environmentConfigs, directory: directory })], { stdio: ["ignore", "ignore", "ignore", "ipc"] });
+        if (watcher != null) return;
+        
+        watcher = spawn(process.execPath, [join(__dirname, "./watcher.js"), JSON.stringify({
+            environments: environmentConfigs,
+            directory: projectData.projectDir,
+            projectType: projectData.projectType
+        })], {
+            stdio: ["ignore", "ignore", "ignore", "ipc"]
+        });
 
         watcher.on('message', message => {
             logger.info(message)
         });
 
-        watcher.on('error', error => {
-            throw new Error(error);
-        });
+        logger.info('watcher initialized')
     }
 
-    if (copyEnvironmentedFiles(logger, environmentConfigs.find(config => config.default == true), directory)) {
+    if (copyEnvironmentedFiles(logger, environmentConfigs.find(config => config.default == true), projectData.projectDir)) {
         logger.info('all files copied')
     }
 }
@@ -122,7 +123,7 @@ const getEnvironmentConfig = (projectDir, hookArgs) => {
     return environmentConfig;
 }
 
-const getAllEnvironmentConfigs = (projectDir, hookArgs) => {
+const getAllEnvironmentConfigs = (projectDir) => {
     const environmentsFilePath = join(projectDir, ENVIRONMENTS_FILE);
     const environmentsData = toml.parse(requireFile(environmentsFilePath));
 
@@ -139,6 +140,41 @@ exports.getWatcher = function getWatcher() {
 
 exports.getEnvironmentConfig = getEnvironmentConfig;
 
+exports.getAllEnvironmentConfigs = getAllEnvironmentConfigs;
+
+exports.interpreteFile = function interpreteFile(logger, projectDir, file, projectType) {
+    environmentConfigs = getAllEnvironmentConfigs(projectDir)
+
+    const absoluteFile = join(projectDir, file)
+    const fileName = basename(absoluteFile);
+    const fileDir = dirname(absoluteFile);
+    const fileParts = fileName.split('.');
+    const fileExtension = fileParts[fileParts.length - 1]
+    const fileEnvironment = fileParts[fileParts.length - 2];
+
+    logger.info(absoluteFile)
+    logger.info(fileName)
+    logger.info(fileEnvironment)
+
+    environmentConfigs.some(environmentConfig => {
+        if (environmentConfig.name == fileEnvironment && environmentConfig.default == true) {
+            switch (projectType) {
+                case 'Angular':
+                    if (fileExtension != 'js') {
+                        copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
+                    }
+                    break;
+                default:
+                    copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    });
+}
+
+// TODO: modify files only in the platforms folder and not create new files, only move environmented files changing its names.
 exports.environmentsInterpreter = function environmentsInterpreter(logger, projectData, options, hookArgs) {
     logger.info('environmentInterpreter')
 
@@ -146,8 +182,7 @@ exports.environmentsInterpreter = function environmentsInterpreter(logger, proje
         try {
             environmentConfig = getEnvironmentConfig(projectData.projectDir, hookArgs)
 
-            interpreteEnvironment(logger, [environmentConfig], projectData.projectDir)
-            // reject(new Error('stopped'))
+            interpreteEnvironment(logger, [environmentConfig], projectData)
             resolve();
         } catch (error) {
             reject(error);
@@ -160,9 +195,9 @@ exports.environmentsWatcher = function environmentsInterpreter(logger, projectDa
 
     return new Promise((resolve, reject) => {
         try {
-            environmentConfigs = getAllEnvironmentConfigs(projectData.projectDir, hookArgs)
+            environmentConfigs = getAllEnvironmentConfigs(projectData.projectDir)
 
-            interpreteEnvironment(logger, environmentConfigs, projectData.projectDir, true)
+            interpreteEnvironment(logger, environmentConfigs, projectData, true)
             resolve()
         } catch (error) {
             reject(error);

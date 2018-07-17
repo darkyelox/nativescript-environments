@@ -20,7 +20,6 @@
     "@angular/platform-browser-dynamic": "~6.0.6",
     "@angular/router": "~6.0.6",
     "nativescript-angular": "~6.0.6",
-    "nativescript-environments": "file:../src",
     "nativescript-theme-core": "~1.0.4",
     "reflect-metadata": "~0.1.10",
     "rxjs": "~6.1.0",
@@ -36,6 +35,7 @@
     "lazy": "1.0.11",
     "nativescript-dev-typescript": "~0.7.0",
     "nativescript-dev-webpack": "~0.14.0",
+    "nativescript-environments": "file:../src",
     "typescript": "~2.7.2"
   }
 }
