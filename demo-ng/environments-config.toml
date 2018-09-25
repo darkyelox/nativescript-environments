@@ -1,6 +1,9 @@
 [[environments]]
 name = "staging"
+active = true
+priority = 2
 
 [[environments]]
 name = "production"
-default = true
+active = false
+priority = 1

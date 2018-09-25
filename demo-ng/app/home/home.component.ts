@@ -7,7 +7,7 @@ import { Component, OnInit } from "@angular/core";
 })
 export class HomeComponent implements OnInit {
 
-    public message = "I'm in a Productions Environment"
+    public message = "I'm in an Staging Environment"
 
     constructor() {
         // Use the component constructor to inject providers.

@@ -1,6 +1,12 @@
 [[environments]]
 name = "staging"
-default = true
+active = true
+priority = 1
+
+[[environments]]
+name = "api"
+active = true
+priority = 2
 
 [[environments]]
 name = "release"

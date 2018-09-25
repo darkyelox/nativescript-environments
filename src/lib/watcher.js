@@ -3,18 +3,21 @@ const path = require('path');
 const {
     interpreteFile
 } = require('./environments-interpreter')
+const {
+    ENVIRONMENTS_FILE
+} = require('./constants')
 
 const args = JSON.parse(process.argv[2]);
 const environments = args.environments;
-const directory = args.directory;
+const projectDir = args.projectDir;
 const projectType = args.projectType;
 
-process.send('Watching for environment:' + environments)
-process.send('Watching into dir:' + directory)
+process.send('Watching for environment: ' + Array.from(environments, environment => environment.name).join(', '))
+process.send('Watching into dir: ' + projectDir)
 
 var watcherOptions = {
     ignoreInitial: true,
-    cwd: directory,
+    cwd: projectDir,
     awaitWriteFinish: {
         pollInterval: 100,
         stabilityThreshold: 300
@@ -22,9 +25,13 @@ var watcherOptions = {
     ignored: ['**/.*', '.*', 'platforms/*', 'node_modules/*', 'hooks/*'] // hidden files and App_Resources folder
 };
 
-watcher = choki.watch(environments.map(environment => {
-        return `**/*.${environment.name}.*`
-    }), watcherOptions)
+const forWatch = [...environments.map(environment => {
+    return `**/*.${environment.name}.*`
+}), `**/${ENVIRONMENTS_FILE}`];
+
+process.send('watching for: ' + forWatch)
+
+watcher = choki.watch(forWatch, watcherOptions)
     .on('change', (filePath) => {
         process.send('live sync file:' + filePath);
         try {
@@ -33,8 +40,8 @@ watcher = choki.watch(environments.map(environment => {
                     process.send(message)
                 }
             }
-            interpreteFile(logger, directory, filePath, projectType)
-        } catch(error) {
+            interpreteFile(logger, projectDir, filePath, projectType)
+        } catch (error) {
             process.send('some error:' + error);
         }
     });

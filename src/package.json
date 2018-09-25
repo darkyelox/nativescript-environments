@@ -24,6 +24,11 @@
         "type": "before-watchPatterns",
         "script": "lib/before-watchPatterns.js",
         "inject": true
+      },
+      {
+        "type": "after-prepare",
+        "script": "lib/after-prepare.js",
+        "inject": true
       }
     ]
   },
@@ -33,12 +38,14 @@
     "package.json"
   ],
   "scripts": {
-    "demo.ios": "npm run setupdemo && cd ../demo && tns emulate ios",
-    "demo.android": "npm run setupdemo && cd ../demo && tns run android",
+    "demo.ios": "npm run setupdemo && cd ../demo && tns emulate ios --syncAllFiles",
+    "demo.android": "npm run setupdemo && cd ../demo && tns run android --syncAllFiles",
+    "demo.android-bundle": "npm run setupdemo && cd ../demo && tns run android --bundle",
     "debug.ios": "npm run setupdemo && cd ../demo && tns debug ios --emulator",
     "debug.android": "npm run setupdemo && cd ../demo && tns debug android --emulator",
     "demo-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns emulate ios",
     "demo-ng.android": "cd ../demo-ng && tns run android --syncAllFiles",
+    "demo-ng.android-bundle": "cd ../demo-ng && tns run android --syncAllFiles --bundle",
     "debug-ng.ios": "npm run setupdemo-ng && cd ../demo-ng && tns debug ios --emulator",
     "debug-ng.android": "npm run setupdemo-ng && cd ../demo-ng && tns debug android --emulator",
     "setupdemo": "cd ../demo && npm uninstall nativescript-environments && npm install ../src --save-dev && tns install",

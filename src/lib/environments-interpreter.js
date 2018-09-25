@@ -64,25 +64,46 @@ const copyEnvironmentedFile = (logger, environmentConfig, parentPath, file) => {
     copyFileSync(sourceFilePath, targetFilePath)
 }
 
-const findDefaultEnvironment = function (environmentsData) {
-    return environmentsData.environments.find(environment => {
-        return environment.default === true
+const filterActiveEnvironments = function (environmentConfigs) {
+    return environmentConfigs.filter(environment => {
+        return environment.active === true
     }) || environmentsData.environments[0];
+}
+
+const sortEnvironments = (environmentConfigs) => {
+    return environmentConfigs.sort((leftConfig, rightConfig) => {
+
+        if (leftConfig.priority == undefined) {
+            leftConfig.priority = Infinity
+        }
+
+        if (rightConfig.priority == undefined) {
+            rightConfig.priority = Infinity
+        }
+
+        if (leftConfig.priority < rightConfig.priority) {
+            return 1
+        } else if (leftConfig.priority > rightConfig.priority) {
+            return -1
+        } else if (leftConfig.priority == rightConfig.priority) {
+            return 0
+        }
+    })
 }
 
 const findEnvironment = function (environmentsData, environment) {
 
 }
 
-const interpreteEnvironment = (logger, environmentConfigs, projectData, watch) => {
+const interpreteEnvironment = (logger, environmentConfigs, projectDir, projectType, watch) => {
 
     if (watch == true) {
         if (watcher != null) return;
-        
+
         watcher = spawn(process.execPath, [join(__dirname, "./watcher.js"), JSON.stringify({
             environments: environmentConfigs,
-            directory: projectData.projectDir,
-            projectType: projectData.projectType
+            projectDir,
+            projectType
         })], {
             stdio: ["ignore", "ignore", "ignore", "ipc"]
         });
@@ -94,9 +115,16 @@ const interpreteEnvironment = (logger, environmentConfigs, projectData, watch) =
         logger.info('watcher initialized')
     }
 
-    if (copyEnvironmentedFiles(logger, environmentConfigs.find(config => config.default == true), projectData.projectDir)) {
+    /* if (copyEnvironmentedFiles(logger, environmentConfigs.find(config => config.default == true), projectData.projectDir)) {
         logger.info('all files copied')
-    }
+    } */
+
+    sortEnvironments(environmentConfigs).forEach(config => {
+        if (copyEnvironmentedFiles(logger, config, projectDir)) {
+            logger.info(`all files of ${config.name} copied`)
+        }
+    })
+
 }
 
 const hookArgReader = function (args) {
@@ -107,7 +135,7 @@ const hookArgReader = function (args) {
     }
 }
 
-const getEnvironmentConfig = (projectDir, hookArgs) => {
+const getEnvironmentConfigs = (projectDir, hookArgs) => {
     const environmentsFilePath = join(projectDir, ENVIRONMENTS_FILE);
     const environmentsData = toml.parse(requireFile(environmentsFilePath));
 
@@ -117,8 +145,10 @@ const getEnvironmentConfig = (projectDir, hookArgs) => {
         environment = hookArgReader(hookArgs.with_environment);
         environmentConfig = findEnvironment(environmentsData, environment);
     } else {
-        environmentConfig = findDefaultEnvironment(environmentsData);
+        environmentConfig = filterActiveEnvironments(environmentsData.environments);
     }
+
+    console.log(environmentConfig)
 
     return environmentConfig;
 }
@@ -130,6 +160,52 @@ const getAllEnvironmentConfigs = (projectDir) => {
     return environmentsData.environments;
 }
 
+const killWatcher = (logger) => {
+    if (watcher && watcher.connected) {
+        logger.info('watcher killing')
+        watcher.disconnect();
+        watcher.kill("SIGINT")
+        watcher = null
+        logger.info('watcher killed')
+    }
+}
+
+const interpreteFile =  (logger, projectDir, file, projectType) => {
+    environmentConfigs = getEnvironmentConfigs(projectDir)
+
+    if (file == ENVIRONMENTS_FILE) {
+        killWatcher(logger)
+        interpreteEnvironment(logger,environmentConfigs, projectDir, projectType, true)
+    } else {
+        const absoluteFile = join(projectDir, file)
+        const fileName = basename(absoluteFile);
+        const fileDir = dirname(absoluteFile);
+        const fileParts = fileName.split('.');
+        const fileExtension = fileParts[fileParts.length - 1]
+        const fileEnvironment = fileParts[fileParts.length - 2];
+
+        const filteredEnvironments = filterActiveEnvironments(environmentConfigs)
+        sortEnvironments(filteredEnvironments)
+            .some(environmentConfig => {
+                if (environmentConfig.name == fileEnvironment) {
+                    switch (projectType) {
+                        // TODO: check for VueJS and TypeScript projects
+                        case 'Angular':
+                            if (fileExtension != 'js') {
+                                copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
+                            }
+                            break;
+                        default:
+                            copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            })
+    }
+}
+
 exports.isWatcherRunning = function isWatcherRunning() {
     return watcher != undefined && watcher != null;
 }
@@ -138,41 +214,13 @@ exports.getWatcher = function getWatcher() {
     return watcher;
 }
 
-exports.getEnvironmentConfig = getEnvironmentConfig;
+exports.killWatcher = killWatcher
+
+exports.getEnvironmentConfigs = getEnvironmentConfigs;
 
 exports.getAllEnvironmentConfigs = getAllEnvironmentConfigs;
 
-exports.interpreteFile = function interpreteFile(logger, projectDir, file, projectType) {
-    environmentConfigs = getAllEnvironmentConfigs(projectDir)
-
-    const absoluteFile = join(projectDir, file)
-    const fileName = basename(absoluteFile);
-    const fileDir = dirname(absoluteFile);
-    const fileParts = fileName.split('.');
-    const fileExtension = fileParts[fileParts.length - 1]
-    const fileEnvironment = fileParts[fileParts.length - 2];
-
-    logger.info(absoluteFile)
-    logger.info(fileName)
-    logger.info(fileEnvironment)
-
-    environmentConfigs.some(environmentConfig => {
-        if (environmentConfig.name == fileEnvironment && environmentConfig.default == true) {
-            switch (projectType) {
-                case 'Angular':
-                    if (fileExtension != 'js') {
-                        copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
-                    }
-                    break;
-                default:
-                    copyEnvironmentedFile(logger, environmentConfig, fileDir, fileName);
-            }
-            return true;
-        } else {
-            return false;
-        }
-    });
-}
+exports.interpreteFile = interpreteFile
 
 // TODO: modify files only in the platforms folder and not create new files, only move environmented files changing its names.
 exports.environmentsInterpreter = function environmentsInterpreter(logger, projectData, options, hookArgs) {
@@ -180,9 +228,9 @@ exports.environmentsInterpreter = function environmentsInterpreter(logger, proje
 
     return new Promise((resolve, reject) => {
         try {
-            environmentConfig = getEnvironmentConfig(projectData.projectDir, hookArgs)
+            const environmentConfigs = getEnvironmentConfigs(projectData.projectDir, hookArgs)
 
-            interpreteEnvironment(logger, [environmentConfig], projectData)
+            interpreteEnvironment(logger, environmentConfigs, projectData.projectDir, projectData.projectType)
             resolve();
         } catch (error) {
             reject(error);
@@ -195,9 +243,9 @@ exports.environmentsWatcher = function environmentsInterpreter(logger, projectDa
 
     return new Promise((resolve, reject) => {
         try {
-            environmentConfigs = getAllEnvironmentConfigs(projectData.projectDir)
+            const environmentConfigs = getEnvironmentConfigs(projectData.projectDir)
 
-            interpreteEnvironment(logger, environmentConfigs, projectData, true)
+            interpreteEnvironment(logger, environmentConfigs, projectData.projectDir, projectData.projectType, true)
             resolve()
         } catch (error) {
             reject(error);
